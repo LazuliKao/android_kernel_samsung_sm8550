@@ -1,13 +1,13 @@
 #!/bin/bash
-official_source="SM-S9080_CHN_14_Opensource.zip" # change it with you downloaded file
+official_source="SM-X710_EUR_15_Opensource.zip" # change it with you downloaded file
 build_root=$(pwd)
 kernel_root="$build_root/kernel_source"
 
-container_name="sm8450-kernel-builder"
+container_name="sm8550-kernel-builder"
 
-kernel_build_script="scripts/build_kernel_5.10.sh"
-support_kernel="5.10" # only support 5.10 kernel
-kernel_source_link="https://opensource.samsung.com/uploadSearch?searchValue=SM-S90"
+kernel_build_script="scripts/build_kernel_5.15.sh"
+support_kernel="5.15" # only support 5.15 kernel
+kernel_source_link="https://opensource.samsung.com/uploadSearch?searchValue=SM-X710"
 
 custom_config_name="custom_gki_defconfig"
 source "$build_root/scripts/utils/config.sh"
@@ -18,59 +18,22 @@ source "$build_root/scripts/utils/core.sh"
 cache_root=$(realpath ${cache_root:-./cache})
 config_hash=$(generate_config_hash)
 cache_config_dir="$cache_root/config_${config_hash}"
-cache_platform_dir="$cache_root/sm8450"
+cache_platform_dir="$cache_root/sm8550"
 toolchains_root="$cache_platform_dir/toolchains"
 
-function download_toolchains() {
-    mkdir -p "$toolchains_root"
-    # init clang-r416183b
-    if [ ! -d "$toolchains_root/clang-r416183b" ]; then
-        echo -e "\n[INFO] Cloning Clang-r416183b...\n"
-        mkdir -p "$toolchains_root/clang-r416183b"
-        cd "$toolchains_root/clang-r416183b"
-        curl -LO "https://github.com/ravindu644/Android-Kernel-Tutorials/releases/download/toolchains/clang-r416183b.tar.gz"
-        tar -xf clang-r416183b.tar.gz
-        rm clang-r416183b.tar.gz
-        cd - >/dev/null
+function extract_toolchains() {
+    echo "[+] Extracting toolchains..."
+    if [ -d "$toolchains_root" ]; then
+        echo "[+] Toolchains directory already exists. Skipping extraction."
+        return 0
     fi
-    # init arm gnu toolchain
-    if [ ! -d "$toolchains_root/gcc" ]; then
-        echo -e "\n[INFO] Cloning ARM GNU Toolchain\n"
-        mkdir -p "$toolchains_root/gcc"
-        cd "$toolchains_root/gcc"
-        curl -LO "https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz"
-        tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
-        cd - >/dev/null
-    fi
-}
-
-function __fix_patch() {
-    echo "[+] Fixing patch..."
-    cd "$kernel_root"
-    _apply_patch_strict "fix_patch.patch"
-    if [ $? -ne 0 ]; then
-        echo "[-] Failed to apply fix patch."
-        exit 1
-    fi
-    echo "[+] Fix patch applied successfully."
-}
-
-function __restore_fix_patch() {
-    echo "[+] Restoring fix patch..."
-    cd "$kernel_root"
-    _apply_patch_strict "fix_patch_reverse.patch"
-    if [ $? -ne 0 ]; then
-        echo "[-] Failed to restore fix patch."
-        exit 1
-    fi
-    echo "[+] Fix patch restored successfully."
+    try_extract_toolchains
 }
 
 function add_susfs() {
     add_susfs_prepare
     echo "[+] Applying SuSFS patches..."
     cd "$kernel_root"
-    __fix_patch # remove some samsung's changes, then susfs can be applied
     local patch_result=$(patch -p1 <50_add_susfs_in_$susfs_branch.patch)
     if [ $? -ne 0 ]; then
         echo "$patch_result"
@@ -81,7 +44,15 @@ function add_susfs() {
         echo "[+] SuSFS patches applied successfully."
         echo "$patch_result" | grep -q ".rej"
     fi
-    __restore_fix_patch # restore removed samsung's changes
+
+    _apply_patch_strict "$susfs_resolve_patch"
+    if [ $? -ne 0 ]; then
+        echo "[-] Failed to apply SuSFS fix patch."
+        exit 1
+    else
+        echo "[+] SuSFS fix patch applied successfully."
+    fi
+
     echo "[+] SuSFS added successfully."
 }
 
@@ -116,7 +87,7 @@ function main() {
         exit 1
     fi
 
-    download_toolchains
+    extract_toolchains
     clean
     prepare_source
     extract_kernel_config

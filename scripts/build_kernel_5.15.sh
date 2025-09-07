@@ -10,23 +10,11 @@ DEVICE_NAME_LIST="r0q,g0q,b0q"
 function prepare_toolchain() {
     # Install the requirements for building the kernel when running the script for the first time
     local TOOLCHAIN=$(realpath "../toolchains")
-    if [ ! -f ".requirements" ]; then
-        sudo apt update && sudo apt install -y git device-tree-compiler lz4 xz-utils zlib1g-dev openjdk-17-jdk gcc g++ python3 python-is-python3 p7zip-full android-sdk-libsparse-utils erofs-utils \
-            default-jdk git gnupg flex bison gperf build-essential zip curl libc6-dev libncurses-dev libx11-dev libreadline-dev libgl1 libgl1-mesa-dev \
-            python3 make sudo gcc g++ bc grep tofrodos python3-markdown libxml2-utils xsltproc zlib1g-dev python-is-python3 libc6-dev libtinfo6 \
-            make repo cpio kmod openssl libelf-dev pahole libssl-dev libarchive-tools zstd --fix-missing && wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb && sudo dpkg -i libtinfo5_6.3-2ubuntu0.1_amd64.deb && touch .requirements
-    fi
-
-    # Create necessary directories
-    mkdir -p "${KERNEL_ROOT}/out" "${KERNEL_ROOT}/build"
-
-    # Export toolchain paths
-    export PATH="${PATH}:$TOOLCHAIN/clang-r416183b/bin"
-    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$TOOLCHAIN/clang-r416183b/lib64"
-
-    # Set cross-compile environment variables
-    export BUILD_CROSS_COMPILE="$TOOLCHAIN/gcc/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-"
-    export BUILD_CC="$TOOLCHAIN/clang-r416183b/bin/clang"
+    export PATH=$TOOLCHAIN/build-tools/linux-x86/bin:$PATH
+    export PATH=$TOOLCHAIN/build-tools/path/linux-x86:$PATH
+    export PATH=$TOOLCHAIN/clang/host/linux-x86/clang-r450784e/bin:$PATH
+    export PATH=$TOOLCHAIN/clang-tools/linux-x86/bin:$PATH
+    export PATH=$TOOLCHAIN/kernel-build-tools/linux-x86/bin:$PATH
 }
 function prepare_config() {
     if [ "$LTO" == "thin" ]; then
@@ -40,9 +28,6 @@ O=${KERNEL_ROOT}/out \
 ARCH=arm64 \
 LLVM=1 \
 LLVM_IAS=1 \
-CROSS_COMPILE=${BUILD_CROSS_COMPILE} \
-CC=${BUILD_CC} \
-CLANG_TRIPLE=aarch64-linux-gnu- \
 LOCALVERSION=$LOCALVERSION \
 "
     # Make default configuration.
