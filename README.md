@@ -1,2 +1,2 @@
-# android_kernel_samsung_sm8450
-Build Kernel For Samsung Galaxy S22 Series (Snapdragon)
+# android_kernel_samsung_sm8550
+Build Kernel For Samsung Galaxy Tab S9 Series
