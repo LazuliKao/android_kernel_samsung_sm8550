@@ -387,14 +387,14 @@ extract_kernel_config() {
 }
 
 add_kernelsu() {
-    echo "[+] Adding KernelSU Next..."
+    echo "[+] Adding KernelSU..."
     cd "$kernel_root"
     if [ -n "$ksu_install_repo" ]; then
         git clone "$ksu_install_repo" "$kernel_root/KernelSU-Next"
     fi
     curl -LSs "$KERNELSU_INSTALL_SCRIPT" | bash -s "$ksu_branch"
     cd "$build_root"
-    echo "[+] KernelSU Next added successfully."
+    echo "[+] KernelSU added successfully."
 }
 
 fix_kernel_su_next_susfs() {
