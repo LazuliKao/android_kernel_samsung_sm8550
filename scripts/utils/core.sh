@@ -26,7 +26,7 @@ generate_config_hash() {
     fi
 }
 
-generate_source_hash(){
+generate_source_hash() {
     # use_lineageos_source
     # lineageos_source_repo
     # lineageos_source_branch
@@ -43,6 +43,7 @@ generate_source_hash(){
     else
         # Fallback: use simple string manipulation
         echo "${all_source}" | sed 's/[^a-zA-Z0-9]//g' | cut -c1-8
+    fi
 }
 
 __get_overlay_base() {
@@ -81,7 +82,7 @@ setup_overlay() {
 
     echo "[+] Setting permissions for overlay directories..."
     chmod 777 "$upper_dir" "$work_dir" "$kernel_edit_dir"
-    
+
     # Mount overlayfs
     echo "[+] Mounting overlayfs..."
     echo "    Lower: $source_dir"
@@ -318,6 +319,11 @@ __prepare_kptools() {
     fi
 }
 __prepare_stock_kernel() {
+    export boot_img="$cache_platform_dir/boot_$source_hash.img"
+    if [ -f "$boot_img" ]; then
+        echo "[+] Stock boot.img already exists, skipping download."
+        return 0
+    fi
     if [ -f "boot.img.lz4" ]; then
         # if there is no lz4 command
         if ! command -v lz4 &>/dev/null; then
@@ -362,17 +368,18 @@ __prepare_stock_kernel() {
         fi
     fi
     echo "[+] boot.img decompressed successfully."
+    cp boot.img "$boot_img"
 }
 extract_kernel_config() {
     cd "$build_root"
     __prepare_kptools
     __prepare_stock_kernel
     # extract official kernel config from boot.img
-    local boot_config_content=$("$kptools" -i boot.img -f)
+    local boot_config_content=$("$kptools" -i "$boot_img" -f)
     echo "[+] Kernel config extracted successfully."
     # see the kernel version of official kernel
     echo "[+] Kernel version of official kernel (boot.img) is:"
-    "$kptools" -i boot.img -d | head -n 3
+    "$kptools" -i "$boot_img" -d | head -n 3
     # copy the extracted kernel config to the kernel source and build using it
     echo "[+] Copying kernel config to the kernel source..."
     local custom_config_file="$kernel_root/arch/arm64/configs/$custom_config_name"
@@ -384,7 +391,7 @@ extract_kernel_config() {
     if [ ! -d "$stock_boot_img" ]; then
         mkdir "$stock_boot_img"
     fi
-    cp boot.img "$stock_boot_img"
+    cp "$boot_img" "$stock_boot_img"
     if [ $? -ne 0 ]; then
         echo "[-] Failed to copy stock boot.img."
         exit 1
@@ -494,7 +501,7 @@ apply_wild_kernels_fix_for_next() {
         "wild_kernels/next/susfs_fix_patches/v1.5.9/fix_sucompat.c.patch"
         "wild_kernels/69_hide_stuff.patch"
     )
-        # "wild_kernels/gki_ptrace.patch"
+    # "wild_kernels/gki_ptrace.patch"
 
     for patch in "${patches[@]}"; do
         if ! _apply_patch "$patch"; then
