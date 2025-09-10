@@ -30,11 +30,8 @@ generate_source_hash() {
     # use_lineageos_source
     # lineageos_source_repo
     # lineageos_source_branch
-    if [ "$use_lineageos_source" = true ]; then
-        local all_source="$lineageos_source_repo|$lineageos_source_branch"
-    else
-        local all_source="$official_source|$KERNEL_SOURCE_URL"
-    fi
+    local all_source="$use_lineageos_source|$lineageos_source_repo|$lineageos_source_branch"
+    all_source+="|$official_source|$KERNEL_SOURCE_URL"
     all_source+="|$KERNEL_BOOT_IMG_URL"
     # Use a cross-platform hash generation method
     if command -v md5sum >/dev/null 2>&1; then
